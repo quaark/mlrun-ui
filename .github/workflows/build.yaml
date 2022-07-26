@@ -37,43 +37,44 @@ jobs:
       id: git_info
       run: |
         echo "::set-output name=mlrun_commit_hash::$(git rev-parse --short=8 $GITHUB_SHA)"
+        curl https://raw.githubusercontent.com/mlrun/mlrun/${GITHUB_REF##*/}/automation/version/unstable_version_prefix
         echo "::set-output name=unstable_version_prefix::$(curl https://raw.githubusercontent.com/mlrun/mlrun/${GITHUB_REF##*/}/automation/version/unstable_version_prefix)"
-    - name: Set computed versions params
-      id: computed_params
-      run: |
-        echo "::set-output name=mlrun_version::$( \
-          input_mlrun_version=${{ github.event.inputs.version }} && \
-          default_mlrun_version=$(echo ${{ steps.git_info.outputs.unstable_version_prefix }}-${{ steps.git_info.outputs.mlrun_commit_hash }}) && \
-          echo ${input_mlrun_version:-`echo $default_mlrun_version`})"
-        echo "::set-output name=mlrun_docker_repo::$( \
-          input_docker_repo=${{ github.event.inputs.docker_repo }} && \
-          default_docker_repo=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]') && \
-          echo ${input_docker_repo:-`echo $default_docker_repo`})"
-        echo "::set-output name=mlrun_docker_registries::$( \
-          input_docker_registries=${{ github.event.inputs.docker_registries }} && \
-          echo ${input_docker_registries:-ghcr.io/})"
-    - name: Setup Node.js 12
-      uses: actions/setup-node@v1
-      with:
-        node-version: '12'
-    - name: Docker login
-      # all suffixed with "| true" to allow failures if secrets are not defined (fork)
-      run: |
-        echo ${{ secrets.GHCR_DOCKER_REGISTRY_PASSWORD }} | \
-          docker login ghcr.io -u ${{ secrets.GHCR_DOCKER_REGISTRY_USERNAME }} --password-stdin | true
-        echo ${{ secrets.DOCKER_HUB_DOCKER_REGISTRY_PASSWORD }} | \
-          docker login registry.hub.docker.com -u ${{ secrets.DOCKER_HUB_DOCKER_REGISTRY_USERNAME }} \
-          --password-stdin | true
-        echo ${{ secrets.QUAY_IO_DOCKER_REGISTRY_PASSWORD }} | \
-          docker login quay.io -u ${{ secrets.QUAY_IO_DOCKER_REGISTRY_USERNAME }} \
-          --password-stdin | true
-    - name: Build & push image
-      run: |
-        for registry in $(echo ${{ steps.computed_params.outputs.mlrun_docker_registries }} | sed "s/,/ /g"); \
-          do \
-            MLRUN_DOCKER_REGISTRY=$registry \
-            MLRUN_DOCKER_REPO=${{ steps.computed_params.outputs.mlrun_docker_repo }} \
-            MLRUN_DOCKER_TAG=${{ steps.computed_params.outputs.mlrun_version }} \
-            npm run docker; \
-            docker push ${registry}${{ steps.computed_params.outputs.mlrun_docker_repo }}/mlrun-ui:${{ steps.computed_params.outputs.mlrun_version }}; \
-          done;
+#    - name: Set computed versions params
+#      id: computed_params
+#      run: |
+#        echo "::set-output name=mlrun_version::$( \
+#          input_mlrun_version=${{ github.event.inputs.version }} && \
+#          default_mlrun_version=$(echo ${{ steps.git_info.outputs.unstable_version_prefix }}-${{ steps.git_info.outputs.mlrun_commit_hash }}) && \
+#          echo ${input_mlrun_version:-`echo $default_mlrun_version`})"
+#        echo "::set-output name=mlrun_docker_repo::$( \
+#          input_docker_repo=${{ github.event.inputs.docker_repo }} && \
+#          default_docker_repo=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]') && \
+#          echo ${input_docker_repo:-`echo $default_docker_repo`})"
+#        echo "::set-output name=mlrun_docker_registries::$( \
+#          input_docker_registries=${{ github.event.inputs.docker_registries }} && \
+#          echo ${input_docker_registries:-ghcr.io/})"
+#    - name: Setup Node.js 12
+#      uses: actions/setup-node@v1
+#      with:
+#        node-version: '12'
+#    - name: Docker login
+#      # all suffixed with "| true" to allow failures if secrets are not defined (fork)
+#      run: |
+#        echo ${{ secrets.GHCR_DOCKER_REGISTRY_PASSWORD }} | \
+#          docker login ghcr.io -u ${{ secrets.GHCR_DOCKER_REGISTRY_USERNAME }} --password-stdin | true
+#        echo ${{ secrets.DOCKER_HUB_DOCKER_REGISTRY_PASSWORD }} | \
+#          docker login registry.hub.docker.com -u ${{ secrets.DOCKER_HUB_DOCKER_REGISTRY_USERNAME }} \
+#          --password-stdin | true
+#        echo ${{ secrets.QUAY_IO_DOCKER_REGISTRY_PASSWORD }} | \
+#          docker login quay.io -u ${{ secrets.QUAY_IO_DOCKER_REGISTRY_USERNAME }} \
+#          --password-stdin | true
+#    - name: Build & push image
+#      run: |
+#        for registry in $(echo ${{ steps.computed_params.outputs.mlrun_docker_registries }} | sed "s/,/ /g"); \
+#          do \
+#            MLRUN_DOCKER_REGISTRY=$registry \
+#            MLRUN_DOCKER_REPO=${{ steps.computed_params.outputs.mlrun_docker_repo }} \
+#            MLRUN_DOCKER_TAG=${{ steps.computed_params.outputs.mlrun_version }} \
+#            npm run docker; \
+#            docker push ${registry}${{ steps.computed_params.outputs.mlrun_docker_repo }}/mlrun-ui:${{ steps.computed_params.outputs.mlrun_version }}; \
+#          done;
