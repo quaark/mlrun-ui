@@ -16,14 +16,9 @@ server {
     proxy_pass $function_catalog;
   }
 
+  rewrite ^/$ /mlrun permanent;
   location /mlrun {
     rewrite ^/mlrun(/|$)(.*) /$2 last;
-  }
-
-  location / {
-    root   /usr/share/nginx/html;
-    index  index.html index.htm;
-    try_files $uri $uri/ /index.html;
   }
 
   set $backend ${MLRUN_API_PROXY_URL};
